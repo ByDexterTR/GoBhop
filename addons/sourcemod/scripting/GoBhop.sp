@@ -13,7 +13,7 @@ public Plugin myinfo =
 	name = "GoBhop", 
 	author = "ByDexter", 
 	description = "Ölü oyuncuların parkur yapmasını sağlar", 
-	version = "1.0", 
+	version = "1.1", 
 	url = "https://steamcommunity.com/id/ByDexterTR - ByDexter#5494"
 };
 
@@ -39,7 +39,7 @@ public void OnPluginStart()
 	RegAdminCmd("sm_bhopiptal", Command_bhopiptal, ADMFLAG_BAN | ADMFLAG_RCON);
 	RegAdminCmd("sm_bhopkov", Command_bhopkapat, ADMFLAG_BAN | ADMFLAG_RCON);
 	
-	//AddCommandListener(Block_Cmd, "sm_noclip");
+	AddCommandListener(Block_Cmd, "sm_noclip");
 	AddCommandListener(Block_Cmd, "sm_git");
 	AddCommandListener(Block_Cmd, "sm_gel");
 	AddCommandListener(Block_Cmd, "+hook");
@@ -58,6 +58,10 @@ public void OnPluginStart()
 	HookEvent("weapon_fire", WeaponFire);
 	
 	g_PlayerResourceAlive = FindSendPropInfo("CCSPlayerResource", "m_bAlive");
+	if (g_PlayerResourceAlive == -1)
+	{
+		SetFailState("[GoBhop] g_PlayerResourceAlive == -1");
+	}
 	
 	HookEntityOutput("func_button", "OnDamaged", OnButton);
 	HookEntityOutput("func_button", "OnPressed", OnButton);
@@ -69,6 +73,20 @@ public void OnPluginStart()
 	for (int i = 1; i <= MaxClients; i++)if (IsValidClient(i))
 	{
 		OnClientPostAdminCheck(i);
+	}
+	
+	FindConVar("mp_restartgame").AddChangeHook(OnRestart);
+}
+
+public void OnRestart(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (StringToInt(newValue) >= 1)
+	{
+		CloseBhop = true;
+		for (int i = 1; i <= MaxClients; i++)if (IsValidClient(i) && GoZone[i] != -1)
+		{
+			SafeKill(i);
+		}
 	}
 }
 
@@ -555,6 +573,7 @@ public Action OnPlayerRunCmd(int client, int &buttons)
 {
 	if (IsValidClient(client) && GoZone[client] != -1)
 	{
+		buttons &= ~IN_USE; // Paraşüt engelleme
 		buttons &= ~IN_ATTACK;
 		buttons &= ~IN_ATTACK2;
 		buttons &= ~IN_ATTACK3;
